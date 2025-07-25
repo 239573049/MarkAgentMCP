@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using MarkAgent.Application.DTOs.Authentication;
 using MarkAgent.Application.DTOs.Todo;
+using MarkAgent.Application.DTOs.ApiKey;
+using MarkAgent.Application.DTOs.McpService;
 using MarkAgent.Application.Services;
 using MarkAgent.Domain.Enums;
 using System.Security.Claims;
@@ -22,6 +24,12 @@ public static class ApiEndpointsExtensions
         
         // Statistics endpoints
         MapStatisticsEndpoints(api);
+        
+        // API Key endpoints
+        MapApiKeyEndpoints(api);
+        
+        // MCP Service endpoints
+        MapMcpServiceEndpoints(api);
         
         // SSE endpoints
         MapSseEndpoints(api);
@@ -199,9 +207,138 @@ public static class ApiEndpointsExtensions
         }).WithTags("SSE");
     }
 
+    private static void MapApiKeyEndpoints(RouteGroupBuilder api)
+    {
+        var apiKeys = api.MapGroup("/api-keys").RequireAuthorization();
+
+        apiKeys.MapGet("/", async (IUserApiKeyService apiKeyService, ClaimsPrincipal user) =>
+        {
+            var userId = GetUserId(user);
+            var keys = await apiKeyService.GetUserApiKeysAsync(userId);
+            return Results.Ok(keys);
+        }).WithTags("API Keys");
+
+        apiKeys.MapPost("/", async (CreateApiKeyRequest request, IUserApiKeyService apiKeyService, ClaimsPrincipal user) =>
+        {
+            try
+            {
+                var userId = GetUserId(user);
+                var apiKey = await apiKeyService.CreateApiKeyAsync(request, userId);
+                return Results.Created($"/api/api-keys/{apiKey.Id}", apiKey);
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("API Keys");
+
+        apiKeys.MapPut("/{id:guid}", async (Guid id, UpdateApiKeyRequest request, IUserApiKeyService apiKeyService, ClaimsPrincipal user) =>
+        {
+            try
+            {
+                var userId = GetUserId(user);
+                var apiKey = await apiKeyService.UpdateApiKeyAsync(id, request, userId);
+                return Results.Ok(apiKey);
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("API Keys");
+
+        apiKeys.MapDelete("/{id:guid}", async (Guid id, IUserApiKeyService apiKeyService, ClaimsPrincipal user) =>
+        {
+            try
+            {
+                var userId = GetUserId(user);
+                await apiKeyService.DeleteApiKeyAsync(id, userId);
+                return Results.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("API Keys");
+
+        apiKeys.MapPut("/{id:guid}/mcp-services", async (Guid id, List<McpServiceSelectionDto> services, IUserApiKeyService apiKeyService, ClaimsPrincipal user) =>
+        {
+            try
+            {
+                var userId = GetUserId(user);
+                await apiKeyService.UpdateMcpServicesAsync(id, services, userId);
+                return Results.Ok(new { message = "MCP services updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("API Keys");
+    }
+
+    private static void MapMcpServiceEndpoints(RouteGroupBuilder api)
+    {
+        var mcpServices = api.MapGroup("/mcp-services");
+
+        // Public endpoint to get available services
+        mcpServices.MapGet("/", async (IMcpServiceManagementService mcpService) =>
+        {
+            var services = await mcpService.GetActiveMcpServicesAsync();
+            return Results.Ok(services);
+        }).WithTags("MCP Services");
+
+        // Admin-only endpoints
+        var adminMcpServices = mcpServices.MapGroup("/admin").RequireAuthorization();
+
+        adminMcpServices.MapGet("/all", async (IMcpServiceManagementService mcpService, ClaimsPrincipal user) =>
+        {
+            if (!IsAdmin(user))
+                return Results.Forbid();
+
+            var services = await mcpService.GetAllMcpServicesAsync();
+            return Results.Ok(services);
+        }).WithTags("MCP Services Admin");
+
+        adminMcpServices.MapPost("/", async (CreateMcpServiceRequest request, IMcpServiceManagementService mcpService, ClaimsPrincipal user) =>
+        {
+            if (!IsAdmin(user))
+                return Results.Forbid();
+
+            try
+            {
+                var service = await mcpService.CreateMcpServiceAsync(request);
+                return Results.Created($"/api/mcp-services/{service.Id}", service);
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("MCP Services Admin");
+
+        adminMcpServices.MapPut("/{id:guid}", async (Guid id, UpdateMcpServiceRequest request, IMcpServiceManagementService mcpService, ClaimsPrincipal user) =>
+        {
+            if (!IsAdmin(user))
+                return Results.Forbid();
+
+            try
+            {
+                var service = await mcpService.UpdateMcpServiceAsync(id, request);
+                return Results.Ok(service);
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).WithTags("MCP Services Admin");
+    }
+
     private static Guid GetUserId(ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.Parse(userIdClaim ?? throw new UnauthorizedAccessException("User ID not found"));
+    }
+
+    private static bool IsAdmin(ClaimsPrincipal user)
+    {
+        return user.FindFirst(ClaimTypes.Role)?.Value == UserRole.Admin.ToString();
     }
 }

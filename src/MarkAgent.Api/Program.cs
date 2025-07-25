@@ -5,6 +5,7 @@ using System.Text;
 using MarkAgent.Infrastructure.Data;
 using MarkAgent.Application.Options;
 using MarkAgent.Infrastructure.Extensions;
+using MarkAgent.Infrastructure.Services;
 using MarkAgent.Application.Extensions;
 using Serilog;
 using MarkAgent.Api.Extensions;
@@ -24,6 +25,7 @@ builder.Services.AddSwaggerGen();
 // Configure options
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<AdminAccountOptions>(builder.Configuration.GetSection(AdminAccountOptions.SectionName));
 
 // Add database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -102,11 +104,18 @@ app.MapMcp("/mcp");
 // Map API endpoints
 app.MapApiEndpoints();
 
-// Ensure database is created
+// Ensure database is created and initialize data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.EnsureCreatedAsync();
+    
+    // Initialize default admin account and MCP services
+    var dbInitService = scope.ServiceProvider.GetRequiredService<DatabaseInitializationService>();
+    await dbInitService.InitializeAsync();
+    
+    var mcpService = scope.ServiceProvider.GetRequiredService<IMcpServiceManagementService>();
+    await mcpService.InitializeDefaultServicesAsync();
 }
 
 app.Run();

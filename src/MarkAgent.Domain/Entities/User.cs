@@ -20,6 +20,7 @@ public class User : Entity
     // Navigation properties
     public ICollection<TodoItem> TodoItems { get; private set; } = new List<TodoItem>();
     public ICollection<ConversationSession> ConversationSessions { get; private set; } = new List<ConversationSession>();
+    public ICollection<UserApiKey> ApiKeys { get; private set; } = new List<UserApiKey>();
 
     private User() { } // For EF Core
 
@@ -31,6 +32,15 @@ public class User : Entity
         Role = role;
         IsEmailVerified = false;
         IsActive = true;
+        
+        // Create default API key
+        CreateDefaultApiKey();
+    }
+
+    private void CreateDefaultApiKey()
+    {
+        var defaultApiKey = new UserApiKey(Id, UserKey, "Default Key", "Default API key for user");
+        ApiKeys.Add(defaultApiKey);
     }
 
     public void UpdatePassword(string newPasswordHash)

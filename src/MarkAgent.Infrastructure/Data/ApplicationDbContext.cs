@@ -15,6 +15,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<TodoItem> TodoItems { get; set; }
     public DbSet<ConversationSession> ConversationSessions { get; set; }
     public DbSet<UserStatistics> UserStatistics { get; set; }
+    public DbSet<UserApiKey> UserApiKeys { get; set; }
+    public DbSet<McpService> McpServices { get; set; }
+    public DbSet<UserKeyMcpService> UserKeyMcpServices { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +28,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.ApplyConfiguration(new TodoItemConfiguration());
         modelBuilder.ApplyConfiguration(new ConversationSessionConfiguration());
         modelBuilder.ApplyConfiguration(new UserStatisticsConfiguration());
+        modelBuilder.ApplyConfiguration(new UserApiKeyConfiguration());
+        modelBuilder.ApplyConfiguration(new McpServiceConfiguration());
+        modelBuilder.ApplyConfiguration(new UserKeyMcpServiceConfiguration());
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
