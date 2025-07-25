@@ -33,6 +33,9 @@ public static class ApiEndpointsExtensions
         
         // SSE endpoints
         MapSseEndpoints(api);
+        
+        // Health check endpoint
+        MapHealthEndpoints(api);
     }
 
     private static void MapAuthenticationEndpoints(RouteGroupBuilder api)
@@ -340,5 +343,15 @@ public static class ApiEndpointsExtensions
     private static bool IsAdmin(ClaimsPrincipal user)
     {
         return user.FindFirst(ClaimTypes.Role)?.Value == UserRole.Admin.ToString();
+    }
+
+    private static void MapHealthEndpoints(RouteGroupBuilder api)
+    {
+        api.MapGet("/health", () => Results.Ok(new
+        {
+            status = "healthy",
+            timestamp = DateTime.UtcNow,
+            version = "1.0.0"
+        })).WithTags("Health");
     }
 }

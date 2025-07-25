@@ -71,11 +71,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddInfrastructureServices();
 builder.Services.AddApplicationServices();
 
-// Add MCP Server
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithTools<MarkAgent.Api.Tools.TodoMcpTool>();
+// Add MCP Server - 基于官方SDK，我们需要单独配置MCP服务器
+// 这部分将在独立的MCP服务器项目中实现
 
 var app = builder.Build();
 
@@ -98,8 +95,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Map MCP endpoints
-app.MapMcp("/mcp");
+// MCP endpoints will be handled by separate MCP server
 
 // Map API endpoints
 app.MapApiEndpoints();

@@ -8,10 +8,10 @@ using MarkAgent.Domain.Enums;
 using MarkAgent.Domain.ValueObjects;
 using MarkAgent.Domain.Repositories;
 
-namespace MarkAgent.Api.Tools;
+namespace MarkAgent.McpServer;
 
 [McpServerTool]
-public class TodoMcpTool : IAsyncDisposable
+public class McpTodoServer : IAsyncDisposable
 {
     private readonly ITodoService _todoService;
     private readonly IConversationSessionService _sessionService;
@@ -21,7 +21,7 @@ public class TodoMcpTool : IAsyncDisposable
     private readonly Dictionary<string, ConversationSession> _activeSessions = new();
     private bool _disposed = false;
 
-    public TodoMcpTool(
+    public McpTodoServer(
         ITodoService todoService,
         IConversationSessionService sessionService,
         IUserRepository userRepository,
@@ -46,13 +46,6 @@ public class TodoMcpTool : IAsyncDisposable
         - Tracked for statistics
         
         When a conversation session ends (IAsyncDisposable), all data is automatically persisted.
-        
-        Parameters:
-        - action: "create_session", "create_todo", "update_todo", "list_todos", "update_status", "end_session"
-        - user_key: User's API key (sk- prefixed, auto-generated if not provided)
-        - session_name: Name for the conversation session
-        - session_id: ID of existing session (for subsequent operations)
-        - todo_data: JSON object with todo details
         """)]
     public async Task<string> ManageTodo(
         [Description("Action to perform: create_session, create_todo, update_todo, list_todos, update_status, end_session")]
