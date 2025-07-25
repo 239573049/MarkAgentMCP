@@ -3,6 +3,7 @@ using MarkAgent.Application.DTOs.Authentication;
 using MarkAgent.Application.DTOs.Todo;
 using MarkAgent.Application.DTOs.ApiKey;
 using MarkAgent.Application.DTOs.McpService;
+using MarkAgent.Application.DTOs.Captcha;
 using MarkAgent.Application.Services;
 using MarkAgent.Domain.Enums;
 using System.Security.Claims;
@@ -18,6 +19,9 @@ public static class ApiEndpointsExtensions
 
         // Authentication endpoints
         MapAuthenticationEndpoints(api);
+        
+        // Captcha endpoints
+        MapCaptchaEndpoints(api);
         
         // Todo endpoints
         MapTodoEndpoints(api);
@@ -42,29 +46,69 @@ public static class ApiEndpointsExtensions
     {
         var auth = api.MapGroup("/auth");
 
-        auth.MapPost("/register", async (RegisterRequest request, IAuthenticationService authService) =>
+        auth.MapPost("/register", async (RegisterRequest request, IAuthenticationService authService, ICaptchaService captchaService) =>
         {
             try
             {
+                // 验证验证码
+                var isCaptchaValid = await captchaService.ValidateCaptchaAsync(request.CaptchaId, request.CaptchaAnswer);
+                if (!isCaptchaValid)
+                {
+                    return Results.BadRequest(new
+                    {
+                        success = false,
+                        message = "验证码错误，请重新输入"
+                    });
+                }
+
                 var response = await authService.RegisterAsync(request);
-                return Results.Ok(response);
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = response,
+                    message = "注册成功"
+                });
             }
             catch (Exception ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return Results.BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }).WithTags("Authentication");
 
-        auth.MapPost("/login", async (LoginRequest request, IAuthenticationService authService) =>
+        auth.MapPost("/login", async (LoginRequest request, IAuthenticationService authService, ICaptchaService captchaService) =>
         {
             try
             {
+                // 验证验证码
+                var isCaptchaValid = await captchaService.ValidateCaptchaAsync(request.CaptchaId, request.CaptchaAnswer);
+                if (!isCaptchaValid)
+                {
+                    return Results.BadRequest(new
+                    {
+                        success = false,
+                        message = "验证码错误，请重新输入"
+                    });
+                }
+
                 var response = await authService.LoginAsync(request);
-                return Results.Ok(response);
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = response,
+                    message = "登录成功"
+                });
             }
             catch (Exception ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return Results.BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }).WithTags("Authentication");
 
@@ -343,6 +387,45 @@ public static class ApiEndpointsExtensions
     private static bool IsAdmin(ClaimsPrincipal user)
     {
         return user.FindFirst(ClaimTypes.Role)?.Value == UserRole.Admin.ToString();
+    }
+
+    private static void MapCaptchaEndpoints(RouteGroupBuilder api)
+    {
+        var captcha = api.MapGroup("/captcha").WithTags("Captcha");
+
+        captcha.MapGet("/generate", async (ICaptchaService captchaService) =>
+        {
+            try
+            {
+                var response = await captchaService.GenerateCaptchaAsync();
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = response
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem($"Failed to generate captcha: {ex.Message}");
+            }
+        }).WithDescription("Generate a new captcha");
+
+        captcha.MapPost("/refresh", async (ICaptchaService captchaService, RefreshCaptchaRequest request) =>
+        {
+            try
+            {
+                var response = await captchaService.RefreshCaptchaAsync(request.CaptchaId);
+                return Results.Ok(new
+                {
+                    success = true,
+                    data = response
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem($"Failed to refresh captcha: {ex.Message}");
+            }
+        }).WithDescription("Refresh an existing captcha");
     }
 
     private static void MapHealthEndpoints(RouteGroupBuilder api)

@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
 
         // Add infrastructure services
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<ICaptchaService, CaptchaService>();
         services.AddSingleton<ITodoRealtimeService, TodoRealtimeService>();
 
         return services;

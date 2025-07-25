@@ -2,6 +2,8 @@ import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Home from '../pages/Home';
+import { LoginPage } from '../pages/auth/login';
+import { RegisterPage } from '../pages/auth/register';
 
 const router = createBrowserRouter([
   {
@@ -12,16 +14,15 @@ const router = createBrowserRouter([
         index: true,
         element: <Home />,
       },
-      // 未来可以在这里添加更多路由
-      // {
-      //   path: 'about',
-      //   element: <About />,
-      // },
-      // {
-      //   path: 'contact',
-      //   element: <Contact />,
-      // },
     ],
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />,
   },
 ]);
 

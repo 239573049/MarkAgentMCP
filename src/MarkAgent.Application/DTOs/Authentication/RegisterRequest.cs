@@ -15,6 +15,26 @@ public class RegisterRequest
     [Required]
     [Compare(nameof(Password))]
     public string ConfirmPassword { get; set; } = string.Empty;
-
-    public string? UserKey { get; set; }
+    
+    /// <summary>
+    /// 用户姓名（可选）
+    /// </summary>
+    public string? FirstName { get; set; }
+    
+    /// <summary>
+    /// 用户姓氏（可选）
+    /// </summary>
+    public string? LastName { get; set; }
+    
+    /// <summary>
+    /// 验证码ID
+    /// </summary>
+    [Required]
+    public string CaptchaId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 验证码答案
+    /// </summary>
+    [Required]
+    public string CaptchaAnswer { get; set; } = string.Empty;
 }

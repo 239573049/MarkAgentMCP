@@ -9,6 +9,22 @@ public class LoginRequest
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [MinLength(6)]
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 记住我
+    /// </summary>
+    public bool RememberMe { get; set; } = false;
+    
+    /// <summary>
+    /// 验证码ID
+    /// </summary>
+    [Required]
+    public string CaptchaId { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// 验证码答案
+    /// </summary>
+    [Required]
+    public string CaptchaAnswer { get; set; } = string.Empty;
 }
